@@ -372,17 +372,20 @@ class ChunkSizeTuner:
             except RuntimeError:
                 return False
 
-        min_viable_chunk_size_index = 0
+        # Binary search for largest viable chunk size (min_chunk_size is assumed
+        # to be viable).
+        lo = 0
+        hi = len(candidates)
         i = len(candidates) - 1
-        while i > min_viable_chunk_size_index:
+        while lo < i < hi:
             viable = test_chunk_size(candidates[i])
-            if not viable:
-                i = (min_viable_chunk_size_index + i) // 2
+            if viable:
+                lo = i
             else:
-                min_viable_chunk_size_index = i
-                i = (i + len(candidates) - 1) // 2
+                hi = i
+            i = (lo + hi) // 2
 
-        return candidates[min_viable_chunk_size_index]
+        return candidates[lo]
 
     def _compare_arg_caches(self, ac1, ac2):
         consistent = True
