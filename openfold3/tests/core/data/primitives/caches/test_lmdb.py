@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for LMDB dict and multiprocessing safety."""
+"""Tests for LMDB dict, multiprocessing safety, and convert_datacache_to_lmdb."""
 
 import json
 import pickle
@@ -21,6 +21,7 @@ import sys
 import lmdb
 import pytest
 import torch
+from conftest import TEST_DATASET_CONFIG
 from torch.utils.data import DataLoader, Dataset
 
 from openfold3.core.data.io.dataset_cache import read_datacache
@@ -29,39 +30,6 @@ from openfold3.core.data.primitives.caches.lmdb import (
     LMDBEnv,
     convert_datacache_to_lmdb,
 )
-
-TEST_DATASET_CONFIG = {
-    "_type": "ProteinMonomerDatasetCache",
-    "name": "DummySet",
-    "structure_data": {
-        "test0": {
-            "chains": {
-                "0": {
-                    "alignment_representative_id": "test_id0",
-                    "template_ids": [],
-                    "index": 0,
-                },
-            },
-        },
-        "test1": {
-            "chains": {
-                "0": {
-                    "alignment_representative_id": "test_id1",
-                    "template_ids": [],
-                    "index": 1,
-                },
-            },
-        },
-    },
-    "reference_molecule_data": {
-        "ALA": {
-            "conformer_gen_strategy": "default",
-            "fallback_conformer_pdb_id": None,
-            "canonical_smiles": "C[C@H](N)C(=O)O",
-            "set_fallback_to_nan": False,
-        },
-    },
-}
 
 
 def create_test_lmdb(lmdb_dir, num_items=10):
@@ -103,23 +71,64 @@ class LMDBDataset(Dataset):
 
 
 class TestLMDBDict:
-    def test_lmdb_roundtrip(self, tmp_path):
-        # Save dummy json
-        test_config_json = tmp_path / "test_config.json"
-        with open(test_config_json, "w") as f:
-            json.dump(TEST_DATASET_CONFIG, f, indent=4)
-
-        # Create LMDB
-        test_lmdb_dir = tmp_path / "test_lmdb"
-        map_size = 20 * 1024
-        convert_datacache_to_lmdb(test_config_json, test_lmdb_dir, map_size)
-
-        # read lmdb
-        lmdb_cache = read_datacache(test_lmdb_dir)
-        # compare with json reloaded cache
-        expected_cache = read_datacache(test_config_json)
-
+    def test_lmdb_roundtrip(self, json_cache, lmdb_cache):
+        expected_cache = read_datacache(json_cache)
         assert lmdb_cache == expected_cache
+
+
+class TestConvertDatacacheToLMDB:
+    def test_env_closed_after_write(self, tmp_path, json_cache):
+        """The write-path context manager should close the env on return.
+
+        LMDB forbids opening the same directory twice in one process. If
+        convert_datacache_to_lmdb leaked the env, this second open would raise
+        lmdb.Error.
+        """
+        lmdb_dir = tmp_path / "lmdb"
+        convert_datacache_to_lmdb(json_cache, lmdb_dir, map_size=2 * (1024**2))
+
+        # Would raise "already open in this process" if the write env leaked
+        try:
+            env = lmdb.open(str(lmdb_dir), readonly=True, lock=False, subdir=True)
+            env.close()
+        except lmdb.Error as exc:
+            pytest.fail(f"lmdb env was not closed after write — re-open raised: {exc}")
+
+    @pytest.mark.parametrize(
+        ("prefix", "expected_keys"),
+        [
+            ("structure_data", {"structure_data:test0", "structure_data:test1"}),
+            ("reference_molecule_data", {"reference_molecule_data:ALA"}),
+        ],
+        ids=["structure_data", "reference_molecule_data"],
+    )
+    def test_written_keys(self, tmp_path, json_cache, prefix, expected_keys):
+        """All entries should be written as prefixed keys."""
+        lmdb_dir = tmp_path / "lmdb"
+        convert_datacache_to_lmdb(json_cache, lmdb_dir, map_size=2 * (1024**2))
+
+        with (
+            lmdb.open(str(lmdb_dir), readonly=True, lock=False, subdir=True) as env,
+            env.begin() as txn,
+            txn.cursor() as cursor,
+        ):
+            keys = {k.decode() for k, _ in cursor if k.decode().startswith(prefix)}
+        assert keys == expected_keys
+
+    def test_metadata_keys_written(self, tmp_path, json_cache):
+        """_type and name metadata should be stored."""
+        lmdb_dir = tmp_path / "lmdb"
+        convert_datacache_to_lmdb(json_cache, lmdb_dir, map_size=2 * (1024**2))
+
+        with (
+            lmdb.open(str(lmdb_dir), readonly=True, lock=False, subdir=True) as env,
+            env.begin() as txn,
+        ):
+            _type = json.loads(txn.get(b"_type").decode())
+            name = json.loads(txn.get(b"name").decode())
+
+        assert _type == TEST_DATASET_CONFIG["_type"]
+        assert name == TEST_DATASET_CONFIG["name"]
 
 
 class TestLMDBEnvPickle:

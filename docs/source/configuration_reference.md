@@ -131,6 +131,10 @@ data_module_args:
 ```
 
 ---
+### 3.X Checkpoint Confiugration (`checkpoint_config`)
+
+Configures Checkpoint writing settings, which are passed to [pl.ModelCheckpoint callback](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.callbacks.ModelCheckpoint.html). 
+
 
 ### 3.6. Dataset Config Kwargs (`dataset_config_kwargs`)
 
@@ -202,8 +206,9 @@ Configures the format of output files.
 **Pydantic Model**: [`OutputWritingSettings`](https://github.com/aqlaboratory/openfold-3/blob/main/openfold3/entry_points/validator.py#L141)
 
 **All Options**:
-- `structure_format` *(Literal["pdb", "cif"])*: Output format (default: `cif`)
+- `structure_format` *(Literal["pdb", "cif", "cif.gz"])*: Output format (default: `cif`)
 - `full_confidence_output_format` *(Literal["json", "npz"])*: Confidence output format (default: `json`)
+- `full_confidence_output_dtype` *(Literal["float32", "float16"])*: Data type for confidence scores when using npz format (default: `float16`)
 - `write_features` *(bool)*: Write intermediate features (default: `false`)
 - `write_latent_outputs` *(bool)*: Write model intermediate outputs (default: `false`)
 - `write_full_confidence_scores` *(bool)*: Write full confidence scores, e.g. PAE, PDE, PLDDT (default: `true`)
@@ -228,7 +233,7 @@ Configures the ColabFold MSA server integration.
 - `server_user_agent` *(str)*: User agent string (default: `openfold`)
 - `server_url` *(Url)*: ColabFold server URL (default: `https://api.colabfold.com`)
 - `save_mappings` *(bool)*: Save sequence ID mappings (default: `true`)
-- `msa_output_directory` *(Path)*: Directory for MSA outputs (default: temporary directory)
+- `msa_output_directory` *(Path)*: Directory for MSA outputs (default: `temporary directory/of3-of-<user>/colabfold_msas`)
 - `cleanup_msa_dir` *(bool)*: Delete MSAs after processing (default: `true`)
 
 **Example**:
@@ -263,6 +268,7 @@ Configures template structure preprocessing and filtering.
 - `create_logs` *(bool)*: Create preprocessing logs (default: `false`)
 - `n_processes` *(int)*: Number of preprocessing processes (default: `1`)
 - `chunksize` *(int)*: Tasks per worker in multiprocessing (default: `1`)
+- `preprocess_timeout` *(int)*: Maximum preprocessing time in seconds (default: `60`)
 - `structure_directory` *(Path | None)*: Directory for template structures (default: `null`)
 - `structure_file_format` *(str)*: File format of structures - `cif` or `pdb` (default: `cif`)
 - `output_directory` *(Path | None)*: Output directory for templates (default: `null`)

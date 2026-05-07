@@ -53,7 +53,7 @@ class CheckpointConfig(BaseModel):
     """Settings for training checkpoint writing."""
 
     monitor: str | None = None
-    mode: str | None = None
+    mode: str | None = "min"
     every_n_epochs: int = 1
     auto_insert_metric_name: bool = False
     filename: str | None = None
@@ -62,8 +62,6 @@ class CheckpointConfig(BaseModel):
     save_top_k: int = -1
     every_n_train_steps: int | None = None
     save_on_train_epoch_end: bool | None = None
-
-    every_n_train_steps: int | None = None
     train_time_interval: Any | None = None
 
     @model_validator(mode="after")
@@ -115,7 +113,7 @@ class DataModuleArgs(BaseModel):
     prefetch_factor: int | None = None
     num_workers_validation: int = 4
     prefetch_factor_validation: int | None = None
-    multiprocessing_context: str | None = None
+    multiprocessing_context: str | None = "openfold-default"
     persistent_workers: bool = False
     epoch_len: int = 4
 
@@ -162,8 +160,9 @@ class OutputWritingSettings(BaseModel):
     Used by OF3OutputWriter in openfold3.core.runners.writer
     """
 
-    structure_format: Literal["pdb", "cif"] = "cif"
+    structure_format: Literal["pdb", "cif", "cif.gz"] = "cif"
     full_confidence_output_format: Literal["json", "npz"] = "json"
+    full_confidence_output_dtype: Literal["float16", "float32"] = "float16"
     write_features: bool = False
     write_latent_outputs: bool = False
     write_full_confidence_scores: bool = True
@@ -427,10 +426,14 @@ class InferenceExperimentConfig(ExperimentConfig):
                     self.inference_ckpt_name
                 ].version_compatibility
             )
-            if current_openfold3_version not in allowed_versions:
+            # Use prereleases=True so that dev versions (e.g. 0.4.1.dev0
+            # from setuptools_scm) are not excluded by the specifier check.
+            if not allowed_versions.contains(
+                current_openfold3_version, prereleases=True
+            ):
                 raise ValueError(
-                    f"Selected checkpoint {self.inference_ckpt_name} is not compatible"
-                    "with the currently installed OpenFold3 version"
+                    f"Selected checkpoint {self.inference_ckpt_name} is not compatible "
+                    "with the currently installed OpenFold3 version "
                     f"{current_openfold3_version}. Allowed versions for this "
                     f"checkpoint are {allowed_versions}."
                 )

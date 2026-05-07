@@ -18,7 +18,6 @@ import os
 import random
 import shutil
 import tarfile
-import tempfile
 import time
 import warnings
 from dataclasses import dataclass, field
@@ -687,22 +686,40 @@ def remap_colabfold_template_chain_ids(
         for entry_id, l2a in label_to_author_maps.items()
     }
 
-    # Remap chain IDs
+    # Remap chain IDs, dropping rows whose author chain ID cannot be resolved
     for top_n in per_rep.values():
         remapped_ids = []
-        for template_id in top_n[1]:
+        rows_to_drop: list[int] = []
+        for idx, template_id in zip(top_n.index, top_n[1]):
             entry_id, author_chain_id = template_id.split("_")
 
             author_to_label = author_to_label_maps.get(entry_id, {})
-            if author_chain_id not in author_to_label:
-                raise RuntimeError(
-                    f"Author chain {author_chain_id} not found in {entry_id}. "
-                    f"Available author chains: {sorted(author_to_label.keys())}"
+            if not author_to_label:
+                # No RCSB chain mapping at all (e.g. obsolete/removed PDB).
+                # Fall back to using the author chain ID as the label chain ID.
+                logger.warning(
+                    f"No RCSB chain mapping found for {entry_id}. "
+                    f"This entry may be obsolete. Falling back to "
+                    f"author chain ID '{author_chain_id}' as label chain ID."
                 )
-            label_chain_id = author_to_label[author_chain_id][0]
+                label_chain_id = author_chain_id
+            elif author_chain_id not in author_to_label:
+                logger.warning(
+                    f"Skipping template {template_id}: author chain "
+                    f"{author_chain_id} not found in {entry_id}. "
+                    f"Available author chains: "
+                    f"{sorted(author_to_label.keys())}"
+                )
+                rows_to_drop.append(idx)
+                continue
+            else:
+                label_chain_id = author_to_label[author_chain_id][0]
 
             remapped_ids.append(f"{entry_id}_{label_chain_id}")
 
+        if rows_to_drop:
+            top_n.drop(index=rows_to_drop, inplace=True)
+            top_n.reset_index(drop=True, inplace=True)
         top_n[1] = remapped_ids
 
     return per_rep
@@ -997,13 +1014,17 @@ class MsaComputationSettings(BaseModel):
     server_user_agent: str = "openfold"
     server_url: Url = Url("https://api.colabfold.com")
     save_mappings: bool = True
-    msa_output_directory: Path = Path(tempfile.gettempdir()) / "of3_colabfold_msas"
+    msa_output_directory: Path | None = None
     cleanup_msa_dir: bool = True
 
     @model_validator(mode="after")
     def create_dir(self) -> "MsaComputationSettings":
         """Creates the output directory if it does not exist."""
-        if not self.msa_output_directory.exists():
+        if self.msa_output_directory is None:
+            from openfold3.core.data.tools.utils import get_of3_tmpdir
+
+            self.msa_output_directory = get_of3_tmpdir("colabfold_msas")
+        elif not self.msa_output_directory.exists():
             self.msa_output_directory.mkdir(parents=True, exist_ok=True)
         return self
 

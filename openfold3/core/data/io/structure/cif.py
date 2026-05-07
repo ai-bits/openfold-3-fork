@@ -14,6 +14,7 @@
 
 """This module contains IO functions for reading and writing mmCIF files."""
 
+import gzip
 import logging
 import pickle
 from pathlib import Path
@@ -326,6 +327,8 @@ def write_structure(
         output_path = Path(output_path)
 
     suffix = output_path.suffix
+    if suffix == ".gz" and output_path.stem.endswith(".cif"):
+        suffix = ".cif.gz"
 
     match suffix:
         case ".npz":
@@ -334,6 +337,18 @@ def write_structure(
         case ".pkl":
             with open(output_path, "wb") as f:
                 pickle.dump(atom_array, f)
+
+        case ".cif.gz":
+            file_obj = _create_cif_file(
+                suffix=".cif",
+                atom_array=atom_array,
+                data_block=data_block,
+                include_bonds=include_bonds,
+                make_ost_compatible=make_ost_compatible,
+            )
+
+            with gzip.open(output_path, "wt") as gz_file:
+                file_obj.write(gz_file)
 
         case ".cif" | ".bcif":
             file_obj = _create_cif_file(
