@@ -21,7 +21,6 @@ import sys
 import lmdb
 import pytest
 import torch
-from conftest import TEST_DATASET_CONFIG
 from torch.utils.data import DataLoader, Dataset
 
 from openfold3.core.data.io.dataset_cache import read_datacache
@@ -30,6 +29,7 @@ from openfold3.core.data.primitives.caches.lmdb import (
     LMDBEnv,
     convert_datacache_to_lmdb,
 )
+from openfold3.tests.core.data.primitives.caches.conftest import TEST_DATASET_CONFIG
 
 
 def create_test_lmdb(lmdb_dir, num_items=10):
