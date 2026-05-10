@@ -244,3 +244,78 @@ class TestUtils(unittest.TestCase):
                     fn, args=(None,), min_chunk_size=4, max_chunk_size=1024
                 )
                 self.assertEqual(result, expected)
+
+    def test_chunk_size_tuner_handles_arg_rank_change(self):
+        tuner = ChunkSizeTuner()
+
+        def fn(t, chunk_size):
+            if chunk_size > 2 ** t.dim() * t.dtype.itemsize:
+                raise RuntimeError("Chunk size too large")
+            return t
+
+        first = tuner.tune_chunk_size(
+            representative_fn=fn,
+            args=(torch.zeros(2, 3, 4, 5),),
+            min_chunk_size=4,
+            max_chunk_size=256,
+        )
+        second = tuner.tune_chunk_size(
+            representative_fn=fn,
+            args=(torch.zeros(2, 3, 4, 5, 6),),
+            min_chunk_size=4,
+            max_chunk_size=256,
+        )
+
+        self.assertNotEqual(
+            first, second, "Chunk size should have been re-tuned for new arg rank"
+        )
+
+    def test_chunk_size_tuner_handles_dtype_bytes_change(self):
+        tuner = ChunkSizeTuner()
+
+        def fn(t, chunk_size):
+            if chunk_size > 2 ** t.dim() * t.dtype.itemsize:
+                raise RuntimeError("Chunk size too large")
+            return t
+
+        first = tuner.tune_chunk_size(
+            representative_fn=fn,
+            args=(torch.zeros(2, 3, 4, 5, dtype=torch.float32),),
+            min_chunk_size=4,
+            max_chunk_size=256,
+        )
+        second = tuner.tune_chunk_size(
+            representative_fn=fn,
+            args=(torch.zeros(2, 3, 4, 5, dtype=torch.bfloat16),),
+            min_chunk_size=4,
+            max_chunk_size=256,
+        )
+
+        self.assertNotEqual(
+            first, second, "Chunk size should have been re-tuned for new dtype bytes"
+        )
+
+    def test_chunk_size_tuner_handles_arg_count_change(self):
+        tuner = ChunkSizeTuner()
+
+        def fn(*args, chunk_size):
+            if chunk_size > 2 ** len(args):
+                raise RuntimeError("Chunk size too large")
+            return args
+
+        first = tuner.tune_chunk_size(
+            representative_fn=fn,
+            args=(1, 2, 3, 4, 5),
+            min_chunk_size=4,
+            max_chunk_size=256,
+        )
+        second = tuner.tune_chunk_size(
+            representative_fn=fn,
+            args=(1, 2, 3, 4, 5, 6),
+            min_chunk_size=4,
+            max_chunk_size=256,
+        )
+
+        self.assertNotEqual(
+            first, second, "Chunk size should have been re-tuned for new arg count"
+        )
