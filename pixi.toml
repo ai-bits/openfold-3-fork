@@ -212,7 +212,7 @@ wandb = "*"
 func_timeout = "*"
 tqdm = "*"
 typing-extensions = "*"
-python-lmdb = "*"
+python-lmdb = ">=2.2.0"
 
 # --- Downloading stuff
 requests = "*"
