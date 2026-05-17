@@ -157,8 +157,7 @@ openfold3-rocm7 = { no-default-feature = true, features = [
 openfold3 = { path = ".", editable = true }
 
 [feature.openfold3-editable-full.target.linux.dependencies]
-# No compatible wheels for cuequivariance<0.8, python 3.14 and linux-aarch64
-python = "<3.14"
+python = "*"
 
 [feature.openfold3-editable-full.pypi-dependencies]
 openfold3 = { path = ".", editable = true, extras = ["deepspeed", "dev"] }
