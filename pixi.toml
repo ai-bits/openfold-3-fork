@@ -212,10 +212,7 @@ wandb = "*"
 func_timeout = "*"
 tqdm = "*"
 typing-extensions = "*"
-# python-lmdb from conda-forge is broken on aarch64/Python 3.13
-# (cpython backend: undefined symbol pthread_atfork; cffi fallback: missing build sources)
-# Use the PyPI package instead, which ships a working pre-compiled extension.
-# python-lmdb = "*"
+python-lmdb = "*"
 
 # --- Downloading stuff
 requests = "*"
@@ -239,8 +236,6 @@ myst-parser = "*"
 furo = "*"
 pre-commit = "*"
 
-[feature.openfold3-cpu.pypi-dependencies]
-lmdb = "*"
 
 [feature.openfold3-cpu.target.linux-64.dependencies]
 mkl = "*"
