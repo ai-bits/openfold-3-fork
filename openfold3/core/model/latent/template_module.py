@@ -393,7 +393,7 @@ class TemplatePairStack(nn.Module):
                 max_chunk_size=chunk_size,
             )
             attn_chunk = (
-                tuned_chunk_size if use_flash_kernels else (tuned_chunk_size // 4)
+                tuned_chunk_size if use_flash_kernels else max(1, tuned_chunk_size // 4)
             )
             blocks = [
                 partial(
