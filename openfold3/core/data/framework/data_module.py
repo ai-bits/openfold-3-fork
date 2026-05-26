@@ -44,7 +44,6 @@ import enum
 import logging
 import multiprocessing
 import platform
-import random
 import sys
 import warnings
 from functools import partial
@@ -662,7 +661,8 @@ class InferenceDataModule(DataModule):
     def prepare_data(self) -> None:
         logger.info("=" * 60)
         logger.info(
-            f"Prepare data: use_msa_server={self.use_msa_server}, use_templates={self.use_templates}"
+            f"Prepare data: use_msa_server={self.use_msa_server}, "
+            f"use_templates={self.use_templates}"
         )
         logger.info("=" * 60)
 

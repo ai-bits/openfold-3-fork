@@ -79,16 +79,18 @@ class Chain(BaseModel):
     def serialize_enum_name(self, v: MoleculeType, _info):
         return v.name
 
-    @model_validator(mode='after')
-    def validate_template_inputs(self) -> 'Chain':
+    @model_validator(mode="after")
+    def validate_template_inputs(self) -> "Chain":
         """Validate template input consistency."""
-        if (self.template_alignment_file_path is not None and 
-            self.template_cif_paths is not None):
+        if (
+            self.template_alignment_file_path is not None
+            and self.template_cif_paths is not None
+        ):
             raise ValueError(
                 f"Chain {self.chain_ids}: Cannot specify both "
                 "'template_alignment_file_path' and 'template_cif_paths'"
             )
-        
+
         if self.template_cif_chain_ids is not None:
             if self.template_cif_paths is None:
                 raise ValueError(
@@ -100,8 +102,8 @@ class Chain(BaseModel):
                     f"Chain {self.chain_ids}: Length mismatch - "
                     f"{len(self.template_cif_paths)} CIF files but "
                     f"{len(self.template_cif_chain_ids)} chain IDs specified"
-            )
-        
+                )
+
         return self
 
     # TODO(jennifer): Add validations to this class

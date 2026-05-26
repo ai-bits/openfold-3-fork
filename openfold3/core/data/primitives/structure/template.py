@@ -336,7 +336,7 @@ def parse_template_structure(
     """
     # Parse template IDs
     pdb_id, chain_id = template_pdb_chain_id.split("_")
-    
+
     # Initialize cache if not provided
     if cif_assembly_cache is None:
         cif_assembly_cache = {}
