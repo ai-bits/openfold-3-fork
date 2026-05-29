@@ -32,16 +32,15 @@ import openfold3.core.config.default_linear_init_config as lin_init
 from openfold3.core.model.feature_embedders.template_embedders import (
     TemplatePairEmbedderAllAtom,
 )
+from openfold3.core.model.latent.base_blocks import PairBlock
 from openfold3.core.model.primitives import LayerNorm, Linear
 from openfold3.core.utils.checkpointing import checkpoint_blocks, checkpoint_section
 from openfold3.core.utils.chunk_utils import (
-    CUEQ_MAX_CHUNK_SIZE,
     DEFAULT_MAX_CHUNK_SIZE,
+    FLASH_MAX_CHUNK_SIZE,
     ChunkSizeTuner,
 )
 from openfold3.core.utils.tensor_utils import add
-
-from .base_blocks import PairBlock
 
 
 # TODO: Make arguments match PairBlock
@@ -387,10 +386,13 @@ class TemplatePairStack(nn.Module):
 
         if chunk_size is not None and self.chunk_size_tuner is not None:
             assert not self.training
+            use_flash_kernels = (
+                use_cueq_triangle_kernels
+                or use_triton_triangle_kernels
+                or use_deepspeed_evo_attention
+            )
             max_chunk_size = (
-                CUEQ_MAX_CHUNK_SIZE
-                if use_cueq_triangle_kernels
-                else DEFAULT_MAX_CHUNK_SIZE
+                FLASH_MAX_CHUNK_SIZE if use_flash_kernels else DEFAULT_MAX_CHUNK_SIZE
             )
             tuned_chunk_size = self.chunk_size_tuner.tune_chunk_size(
                 representative_fn=blocks[0],
@@ -399,9 +401,7 @@ class TemplatePairStack(nn.Module):
                 max_chunk_size=max_chunk_size,
             )
             attn_chunk = (
-                tuned_chunk_size
-                if use_cueq_triangle_kernels
-                else (tuned_chunk_size // 4)
+                tuned_chunk_size if use_flash_kernels else (tuned_chunk_size // 4)
             )
             blocks = [
                 partial(
