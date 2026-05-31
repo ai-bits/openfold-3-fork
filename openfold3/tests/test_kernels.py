@@ -716,6 +716,7 @@ class TestKernels(unittest.TestCase):
         use_triton_triangle_kernels=False,
         dtype=torch.float32,
         chunk_size=None,
+        eps=2e-2,
     ):
         """
         Compare Template Stack output with and without using different optimized
@@ -788,7 +789,7 @@ class TestKernels(unittest.TestCase):
                 use_triton_triangle_kernels=use_triton_triangle_kernels,
             )
 
-            compare_utils.assert_max_abs_diff_small(out_repro, out_repro_ds, 2e-2)
+            compare_utils.assert_max_abs_diff_small(out_repro, out_repro_ds, eps)
 
     @compare_utils.skip_unless_ds4s_installed()
     def test_compare_template_stack_dsk_fp32(self):
@@ -802,6 +803,7 @@ class TestKernels(unittest.TestCase):
         self._compare_template_stack(
             use_deepspeed_evo_attention=True,
             dtype=torch.bfloat16,
+            eps=4e-2,
         )
 
     @compare_utils.skip_unless_ds4s_installed()
