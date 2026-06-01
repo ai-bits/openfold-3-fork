@@ -197,6 +197,42 @@ class TestUtils(unittest.TestCase):
 
                 self.assertTrue(torch.all(chunked == chunked_flattened))
 
+    def test_chunk_size_tuner_caches(self):
+        tuner = ChunkSizeTuner()
+
+        def fn(t, chunk_size):
+            if chunk_size > 2 ** t.dim() * t.dtype.itemsize:
+                raise RuntimeError("Chunk size too large")
+            return t
+
+        spy_fn = unittest.mock.Mock(side_effect=fn)
+
+        first = tuner.tune_chunk_size(
+            representative_fn=spy_fn,
+            args=(torch.randn(2, 3, 4, 5),),
+            min_chunk_size=4,
+            max_chunk_size=256,
+        )
+
+        first_call_count = spy_fn.call_count
+        second = tuner.tune_chunk_size(
+            representative_fn=spy_fn,
+            args=(torch.randn(2, 3, 4, 5),),
+            min_chunk_size=4,
+            max_chunk_size=256,
+        )
+
+        self.assertEqual(
+            first,
+            second,
+            "Chunk size should have been cached for identical arg shapes and dtypes",
+        )
+        self.assertEqual(
+            first_call_count,
+            spy_fn.call_count,
+            "Representative function should not have been called again for identical arg shapes and dtypes",
+        )
+
     def test_chunk_size_tuner_does_not_retest_candidates(self):
         # Based on previous bug: the binary search forgot which candidates it
         # had already proven non-viable and re-tested them.
