@@ -388,6 +388,9 @@ class ChunkSizeTuner:
         return candidates[lo]
 
     def _compare_arg_caches(self, ac1, ac2):
+        # When recursing this tests that tensors have the same rank
+        if len(ac1) != len(ac2):
+            return False
         consistent = True
         for a1, a2 in zip(ac1, ac2, strict=True):
             assert type(a1) is type(a2)
@@ -412,12 +415,11 @@ class ChunkSizeTuner:
         max_chunk_size=DEFAULT_MAX_CHUNK_SIZE,
     ) -> int:
         def remove_tensors(a):
-            return a.shape if type(a) is torch.Tensor else a
+            return (a.shape, a.dtype.itemsize) if type(a) is torch.Tensor else a
 
         arg_data = tree_map(remove_tensors, args, object)
         if self.cached_arg_data is not None:
             # If args have changed shape/value, we need to re-tune
-            assert len(self.cached_arg_data) == len(arg_data)
             consistent = self._compare_arg_caches(self.cached_arg_data, arg_data)
         else:
             # Otherwise, we can reuse the precomputed value
