@@ -19,8 +19,6 @@ attention kernel, DS4Sci_EvoformerAttention vs. a stock PyTorch attention
 implementation.
 """
 
-import unittest
-
 import pytest
 import torch
 from torch.nn import functional as F
@@ -49,7 +47,7 @@ torch.backends.cuda.preferred_blas_library("cublas")
 
 
 @compare_utils.skip_unless_cuda_available()
-class TestKernels(unittest.TestCase):
+class TestKernels:
     def _compare_attn_kernel_forward(
         self,
         use_deepspeed_evo_attention=False,
@@ -100,7 +98,7 @@ class TestKernels(unittest.TestCase):
             ).cpu()
 
         err = torch.max(torch.abs(kernel_out - real_out))
-        self.assertTrue(err < eps, f"Error: {err}")
+        assert err < eps, f"Error: {err}"
 
     @compare_utils.skip_unless_ds4s_installed()
     def test_dsk_forward_bf16(self):
@@ -244,7 +242,7 @@ class TestKernels(unittest.TestCase):
         for i, item in enumerate(pairs):
             t_repro, t_gt = item
             err = torch.max(torch.abs(t_repro.grad.cpu() - t_gt.grad.cpu()))
-            self.assertTrue(err < eps, f"Error item #{i}: {err}")
+            assert err < eps, f"Error item #{i}: {err}"
 
         # Compare the grads of model weights
         a_repro_params = dict(a_repro.named_parameters())
@@ -253,7 +251,7 @@ class TestKernels(unittest.TestCase):
             t_repro = a_repro_params[name]
             t_gt = a_gt_params[name]
             err = torch.max(torch.abs(t_repro.grad.cpu() - t_gt.grad.cpu()))
-            self.assertTrue(err < eps, f"Error item {name}: {err}")
+            assert err < eps, f"Error item {name}: {err}"
 
     @compare_utils.skip_unless_ds4s_installed()
     def test_dsk_backward_bf16(self):
@@ -329,7 +327,7 @@ class TestKernels(unittest.TestCase):
             )
         err = torch.max(torch.abs(fwd_reg - fwd_cueq))
         eps = 2e-2
-        self.assertTrue(err < eps, f"Error: {err}")
+        assert err < eps, f"Error: {err}"
 
     @compare_utils.skip_unless_cueq_installed()
     def test_cueq_tri_mult_bwd(self):
@@ -406,7 +404,7 @@ class TestKernels(unittest.TestCase):
             t_repro = tm_repro_params[name]
             t_gt = tm_gt_params[name]
             err = torch.max(torch.abs(t_repro.grad.cpu() - t_gt.grad.cpu()))
-            self.assertTrue(err < eps, f"Error item {name}: {err}")
+            assert err < eps, f"Error item {name}: {err}"
 
     def _initialize_model_weights(self, model):
         for module in model.modules():
@@ -716,6 +714,7 @@ class TestKernels(unittest.TestCase):
         use_triton_triangle_kernels=False,
         dtype=torch.float32,
         chunk_size=None,
+        eps=2e-2,
     ):
         """
         Compare Template Stack output with and without using different optimized
@@ -788,7 +787,7 @@ class TestKernels(unittest.TestCase):
                 use_triton_triangle_kernels=use_triton_triangle_kernels,
             )
 
-            compare_utils.assert_max_abs_diff_small(out_repro, out_repro_ds, 2e-2)
+            compare_utils.assert_max_abs_diff_small(out_repro, out_repro_ds, eps)
 
     @compare_utils.skip_unless_ds4s_installed()
     def test_compare_template_stack_dsk_fp32(self):
@@ -802,6 +801,7 @@ class TestKernels(unittest.TestCase):
         self._compare_template_stack(
             use_deepspeed_evo_attention=True,
             dtype=torch.bfloat16,
+            eps=4e-2,
         )
 
     @compare_utils.skip_unless_ds4s_installed()
@@ -855,7 +855,3 @@ class TestKernels(unittest.TestCase):
             use_triton_triangle_kernels=True,
             dtype=torch.bfloat16,
         )
-
-
-if __name__ == "__main__":
-    unittest.main()

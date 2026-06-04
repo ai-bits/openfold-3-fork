@@ -112,6 +112,12 @@ def query_colabfold_msa_server(
 
     submission_endpoint = "ticket/pair" if use_pairing else "ticket/msa"
 
+    # Normalize the host: a pydantic Url stringifies with a trailing slash, which
+    # would produce a doubled slash (e.g. ".../com//ticket/msa") in the f-strings
+    # below. The server 301-redirects the doubled slash, and requests downgrades
+    # the POST to GET while dropping the body, yielding a misleading "invalid ID".
+    host_url = str(host_url).rstrip("/")
+
     headers = {}
     if user_agent != "":
         headers["User-Agent"] = user_agent
@@ -1140,6 +1146,16 @@ def preprocess_colabfold_msas(
     # Save mappings to file
     if compute_settings.save_mappings:
         save_colabfold_mappings(colabfold_mapper, output_directory)
+
+    # Abort early if a stale raw directory exists — it contains unvalidated
+    # out.tar.gz files that would be silently reused for the wrong query.
+    raw_dir = output_directory / "raw"
+    if raw_dir.exists():
+        raise FileExistsError(
+            f"ColabFold raw directory already exists: {raw_dir}\n"
+            "This is likely left over from a previous failed run. "
+            "Please remove it before starting a new run."
+        )
 
     # Run batch queries for main and paired MSAs
     colabfold_query_runner = ColabFoldQueryRunner(

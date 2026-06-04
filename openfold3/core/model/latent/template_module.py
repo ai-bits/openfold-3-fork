@@ -21,7 +21,6 @@ These modules embed templates into pair embeddings. Note that this includes the 
 feature embedding functions in openfold3.core.model.feature_embedders.
 """
 
-import sys
 from functools import partial
 
 import torch
@@ -34,6 +33,7 @@ from openfold3.core.model.feature_embedders.template_embedders import (
 )
 from openfold3.core.model.latent.base_blocks import PairBlock
 from openfold3.core.model.primitives import LayerNorm, Linear
+from openfold3.core.model.utils import assert_sole_holder
 from openfold3.core.utils.checkpointing import checkpoint_blocks, checkpoint_section
 from openfold3.core.utils.chunk_utils import ChunkSizeTuner
 from openfold3.core.utils.tensor_utils import add
@@ -572,7 +572,7 @@ class TemplateEmbedderAllAtom(nn.Module):
                 _mask_trans=_mask_trans,
             )
 
-            assert sys.getrefcount(t) == 2
+            assert_sole_holder(t)
 
             t_out[..., i : i + 1, :, :, :] = t.cpu()
 
