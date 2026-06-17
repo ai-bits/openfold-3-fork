@@ -179,10 +179,16 @@ On the first inference run, default model parameters will be downloaded to the `
 
 ### Using `setup_openfold` 
 
-We provide a one-stop binary that sets up openfold and runs integration tests. This binary can be called with:
+We provide a one-stop binary that sets up openfold and runs integration tests.
 
-```bash
-setup_openfold
+```
+Usage: setup_openfold [OPTIONS]
+
+Options:
+  --non-interactive  Non-interactively run setup using all default config
+                     values.
+  --config FILE      Path to a JSON file containing an OpenFoldSetupConfig.
+  --help             Show this message and exit.
 ```
 
 This script will:
