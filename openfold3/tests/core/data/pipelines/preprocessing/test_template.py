@@ -154,9 +154,7 @@ _T_2021 = datetime(2021, 1, 1)
     "template_date, query_date, max_date, min_diff, expected",
     [
         pytest.param(_T_2020, None, None, None, False, id="no_constraints_passes"),
-        pytest.param(
-            _T_2021, None, _T_2020, None, True, id="template_after_max_fails"
-        ),
+        pytest.param(_T_2021, None, _T_2020, None, True, id="template_after_max_fails"),
         pytest.param(
             _T_2020, None, _T_2021, None, False, id="template_before_max_passes"
         ),
