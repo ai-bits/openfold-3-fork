@@ -192,6 +192,7 @@ def chain_connected_molecule_iter(
     root_atoms = chain_starts[:-1]
     root_atom_repeated = np.repeat(root_atoms, np.diff(chain_starts))
 
+    # Creates root atom bond list [(0, 1), (0, 2), (1, 2), ..., (N, N+1), ...]
     # Exclude self-bonds (i, i) that occur at each chain's first atom
     all_indices = np.arange(n_atoms)
     non_self = root_atom_repeated != all_indices
