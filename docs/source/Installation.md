@@ -161,7 +161,7 @@ gh auth token | docker login ghcr.io -u $(gh api user --jq .login) --password-st
 Pull the image itself 
 
 ```bash
-docker pull ghcr.io/aqlaboratory/openfold-3/openfold3-docker:0.4.1
+docker pull ghcr.io/aqlaboratory/openfold-3/openfold3-docker:0.4.2
 ```
 
 ### Building the OpenFold3 Docker Image 
