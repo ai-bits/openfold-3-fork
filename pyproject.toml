@@ -74,6 +74,7 @@ optional-dependencies.cuequivariance = [
     "torch>=2.7",
 ]
 optional-dependencies.deepspeed = [
+    "nvidia-cutlass",
     "deepspeed>=0.18.7",
 ]
 
