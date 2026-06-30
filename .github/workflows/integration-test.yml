@@ -2,7 +2,10 @@ name: Run integration tests with docker image
 
 on:
   schedule:
-    - cron: '0 3 * * *' # daily at 03:00 UTC
+    # GitHub-hosted schedulers see heavy contention on the hour; offsetting by
+    # 17 minutes reduces queue delay and avoids colliding with other
+    # AWS-runner-launching workflows that fire on :00.
+    - cron: '17 3 * * *' # daily at 03:17 UTC
   workflow_dispatch:
 
 jobs:
