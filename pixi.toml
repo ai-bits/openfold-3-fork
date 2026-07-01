@@ -244,6 +244,7 @@ pytest-xdist = "*"
 pytest-cov = "*"
 pytest-benchmark = "*"
 pytest-regressions = "*"
+pytest-vcr = "*"
 
 # --- Dev and documentation optionals
 # We do not put on a feature to avoid combinatorial explosion.
