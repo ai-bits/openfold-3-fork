@@ -11,11 +11,15 @@ through the release pipeline once local testing here passes.
 cd ~/workspace/openfold-3
 # make sure you're on the branch/commit you want to test
 
-mamba create -n dev python=3.14
-conda activate dev
-
-python3 -m build
+uv build --python=3.14
 ```
+
+uv build builds in an isolated, ephemeral virtual environment by
+default — it installs whatever build backend/deps pyproject.toml
+declares into a throwaway env, builds the distributions, and discards the
+env. There's nothing to create or activate beforehand, and it can't pick up
+a stale openfold3 install from your shell, since it never touches your
+active environment.
 
 This produces a `dist/openfold3-<version>.tar.gz` (sdist) and a
 `dist/openfold3-<version>-py3-none-any.whl` (wheel) in the repo's `dist/`
@@ -27,7 +31,7 @@ of local testing.
 Optionally check the sdist metadata is well-formed before installing it:
 
 ```bash
-twine check dist/*
+uvx twine check dist/*
 ```
 
 ## 2. Install the sdist into a fresh venv with uv
@@ -56,18 +60,3 @@ Running with `--pyargs` is important here — it runs tests against the
 **installed** package in `.venv/`, not against the source tree, which is the
 point of this exercise (confirming the packaged artifact actually works).
 
-## 4. (Optional) Repeat against the wheel
-
-The sdist and wheel can diverge — e.g. a file missing from `MANIFEST.in`
-might only affect the sdist, while a stale `build` isolation issue might only
-show up in the wheel. If you want to be thorough, repeat steps 2–3 with
-`dist/openfold3-<version>-py3-none-any.whl` in a separate fresh venv.
-
----
-
-## References
-
-- [PyPA: Creating and using virtual environments](https://packaging.python.org/en/latest/guides/installing-using-pip-and-virtual-environments/) — background on why installing into an isolated environment (rather than testing in-place) is standard practice before a release.
-- [`build` documentation](https://build.pypa.io/) — details on what `python -m build` does and how it isolates the build from your dev environment.
-- [`setuptools_scm` documentation](https://setuptools-scm.readthedocs.io/) — explains the `.devN+gHASH.dDATE` version scheme you'll see on untagged commits.
-- [pytest: Good Integration Practices](https://docs.pytest.org/en/stable/explanation/goodpractices.html) — covers the rationale for `--pyargs` / testing installed packages vs. the source tree.
