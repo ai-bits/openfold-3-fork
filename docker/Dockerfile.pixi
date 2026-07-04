@@ -39,14 +39,15 @@ WORKDIR /opt/pixi-project
 COPY pixi.toml pixi.lock pyproject.toml ./
 COPY openfold3/__init__.py ./openfold3/
 
-# Bypass GPU detection during build — pixi's cuda12/cuda13 features declare
-# system-requirements.cuda which would fail without a GPU driver present.
+# Bypass GPU detection during build — the cuda12/cuda13 platforms declare a
+# system-requirements cuda version which would fail without a GPU driver present.
 # Extract the CUDA feature name from PIXI_ENV (e.g., "openfold3-cuda12" -> "cuda12")
-# and look up its system-requirements.cuda value from pixi.toml.
-RUN CUDA_FEATURE=$(echo "${PIXI_ENV}" | grep -oP 'cuda\d+') && \
+# and look up its cuda value from the workspace `platforms` table in pixi.toml,
+# where it is declared as e.g. `{ name = "linux-64-cuda12", ..., cuda = "12.0" }`.
+RUN CUDA_FEATURE=$(echo "${PIXI_ENV}" | grep -oP 'cuda\d+' || true) && \
     if [ -n "${CUDA_FEATURE}" ]; then \
-        CUDA_VERSION=$(grep -A1 "\[feature\.${CUDA_FEATURE}\.system-requirements\]" pixi.toml \
-            | grep -oP 'cuda\s*=\s*"\K[^"]+') && \
+        CUDA_VERSION=$(grep -- "-${CUDA_FEATURE}\"" pixi.toml \
+            | grep -oP 'cuda\s*=\s*"\K[^"]+' | head -1) && \
         export CONDA_OVERRIDE_CUDA="${CUDA_VERSION}"; \
     fi && \
     pixi install --frozen -e ${PIXI_ENV}
